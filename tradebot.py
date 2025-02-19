@@ -47,6 +47,15 @@ div.stTextInput>div>input {
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # ----------------------------
+# Helper: Rerun the App if Possible
+# ----------------------------
+def rerun_app():
+    if hasattr(st, "experimental_rerun"):
+        st.experimental_rerun()
+    else:
+        st.write("Please refresh the page manually to continue.")
+
+# ----------------------------
 # FinBERT Model Loading
 # ----------------------------
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -157,7 +166,7 @@ class MLTrader:
                 order_details += (f"Placing BUY order for {quantity} shares of {self.symbol} at ${last_price:.2f}. "
                                   f"Target Profit: ${last_price*1.20:.2f}, Stop Loss: ${last_price*0.95:.2f}.")
                 try:
-                    order = self.api.submit_order(
+                    self.api.submit_order(
                         symbol=self.symbol,
                         qty=quantity,
                         side='buy',
@@ -181,7 +190,7 @@ class MLTrader:
                 order_details += (f"Placing SELL order for {quantity} shares of {self.symbol} at ${last_price:.2f}. "
                                   f"Target Profit: ${last_price*0.80:.2f}, Stop Loss: ${last_price*1.05:.2f}.")
                 try:
-                    order = self.api.submit_order(
+                    self.api.submit_order(
                         symbol=self.symbol,
                         qty=quantity,
                         side='sell',
@@ -216,7 +225,7 @@ if not st.session_state.logged_in:
         if username_input == "username" and password_input == "idontknow":
             st.session_state.logged_in = True
             st.success("Logged in successfully!")
-            st.experimental_rerun()
+            rerun_app()  # Try to rerun the app automatically.
         else:
             st.error("Invalid username or password.")
     st.stop()
@@ -230,7 +239,7 @@ page = st.sidebar.radio("Go to", ["Dashboard", "Trading", "Backtesting", "Settin
 # Logout button
 if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
-    st.experimental_rerun()
+    rerun_app()
 
 if page == "Dashboard":
     st.title("Dashboard")
