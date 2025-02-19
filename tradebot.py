@@ -93,7 +93,8 @@ def estimate_sentiment(news_list):
 # Real API credentials for your paper trading account:
 API_KEY = "PKCLIIWUQKZIRDLCZJFD"
 API_SECRET = "8gnyNqo5FKDcoDjmI36m9oar2KdQeMooQSwDFdTu"
-BASE_URL = "https://paper-api.alpaca.markets/v2"
+# Note: Remove '/v2' from BASE_URL so that the client builds the correct endpoint.
+BASE_URL = "https://paper-api.alpaca.markets"
 
 class MLTrader:
     def __init__(self, symbol="SPY", cash_at_risk=0.5):
@@ -113,13 +114,19 @@ class MLTrader:
         except Exception as e:
             st.error(f"Error fetching account info: {e}")
             cash = 0
-        # Fetch last trade price using the latest minute bar
+        
+        # Fetch the latest 1-minute bar using get_bars (replaces deprecated get_barset)
         try:
-            barset = self.api.get_barset(self.symbol, "minute", limit=1)
-            last_price = barset[self.symbol][0].c if barset[self.symbol] else 0
+            bars = self.api.get_bars(self.symbol, timeframe="1Min", limit=1)
+            if bars and len(bars) > 0:
+                # Assuming the returned object has a 'c' attribute for the close price.
+                last_price = bars[0].c
+            else:
+                last_price = 0
         except Exception as e:
             st.error(f"Error fetching market data: {e}")
             last_price = 0
+        
         quantity = round(cash * self.cash_at_risk / last_price, 0) if last_price > 0 else 0
         return cash, last_price, quantity
 
@@ -225,7 +232,7 @@ if not st.session_state.logged_in:
         if username_input == "username" and password_input == "idontknow":
             st.session_state.logged_in = True
             st.success("Logged in successfully!")
-            rerun_app()  # Try to rerun the app automatically.
+            rerun_app()  # This will refresh the app if possible.
         else:
             st.error("Invalid username or password.")
     st.stop()
@@ -246,7 +253,7 @@ if page == "Dashboard":
     st.write("Welcome to your Trading Bot Dashboard.")
     
     st.subheader("Market Sentiment Analysis")
-    trader = MLTrader()  # instantiate the trading bot
+    trader = MLTrader()  # Instantiate the trading bot
     with st.spinner("Fetching news and estimating sentiment..."):
         probability, sentiment = trader.get_sentiment()
         time.sleep(1)
